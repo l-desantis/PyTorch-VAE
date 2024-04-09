@@ -70,9 +70,9 @@ class VanillaVAE(BaseVAE):
                                                output_padding=1),
                             nn.BatchNorm2d(hidden_dims[-1]),
                             nn.LeakyReLU(),
-                            nn.Conv2d(hidden_dims[-1], out_channels= 3,
+                            nn.Conv2d(hidden_dims[-1], out_channels= 1,
                                       kernel_size= 3, padding= 1),
-                            nn.Tanh())
+                            nn.Sigmoid())
 
     def encode(self, input: Tensor) -> List[Tensor]:
         """
@@ -119,7 +119,8 @@ class VanillaVAE(BaseVAE):
     def forward(self, input: Tensor, **kwargs) -> List[Tensor]:
         mu, log_var = self.encode(input)
         z = self.reparameterize(mu, log_var)
-        return  [self.decode(z), input, mu, log_var]
+        z = self.decode(z)
+        return  [z, input, mu, log_var]
 
     def loss_function(self,
                       *args,
@@ -138,6 +139,7 @@ class VanillaVAE(BaseVAE):
 
         kld_weight = kwargs['M_N'] # Account for the minibatch samples from the dataset
         recons_loss =F.mse_loss(recons, input)
+        # recons_loss = F.cross_entropy(recons, input)
 
 
         kld_loss = torch.mean(-0.5 * torch.sum(1 + log_var - mu ** 2 - log_var.exp(), dim = 1), dim = 0)
